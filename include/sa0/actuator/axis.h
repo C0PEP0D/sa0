@@ -11,48 +11,63 @@ namespace sa0 {
 
 // Actuators
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepPassive>
-class StepAxisSwim : public StepActuator<TypeState, TypeRef, TypeStepPassive> {
+template<typename TypeStepPassive>
+class StepAxisSwim : public StepActuator<TypeStepPassive> {
+    public:
+        using Type = StepActuator<TypeStepPassive>;
+        using typename Type::TypeStateVectorDynamic;
+        using TypeSpaceVector = typename TypeStepPassive::TypeSpaceVector;
     public:
         StepAxisSwim(double& p_velocity) : velocity(p_velocity) {
         }
 
-        TypeState operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepPassive& stepPassive) const override {
-            TypeState dState = TypeState::Zero();
-            stepPassive.x(dState) = stepPassive.cAxis(state) * velocity;
+        TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const override {
+            TypeStateVectorDynamic dState(stepPassive.stateSize());
+            dState.fill(0.0);
+            stepPassive.x(dState.data()) = stepPassive.cAxis(pState) * velocity;
             return dState;
         }
     public:
         double velocity;
 };
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepPassive, typename TypeVector>
-class StepAxisRotate : public StepActuator<TypeState, TypeRef, TypeStepPassive> {
+template<typename TypeStepPassive>
+class StepAxisRotate : public StepActuator<TypeStepPassive> {
     public:
-        StepAxisRotate(const TypeRef<const TypeVector>& p_angularVelocity) : angularVelocity(p_angularVelocity) {
+        using Type = StepActuator<TypeStepPassive>;
+        using typename Type::TypeStateVectorDynamic;
+        using TypeSpaceVector = typename TypeStepPassive::TypeSpaceVector;
+    public:
+        StepAxisRotate(const TypeSpaceVector& p_angularVelocity) : angularVelocity(p_angularVelocity) {
         }
 
-        TypeState operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepPassive& stepPassive) const override {
-            TypeState dState = TypeState::Zero();
-            stepPassive.axis(dState) = angularVelocity.cross(stepPassive.cAxis(state));
+        TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const override {
+            TypeStateVectorDynamic dState(stepPassive->stateSize());
+            dState.fill(0.0);
+            stepPassive.axis(dState) = angularVelocity.cross(stepPassive.cAxis(pState));
             return dState;
         }
     public:
-        TypeVector angularVelocity;
+        TypeSpaceVector angularVelocity;
 };
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepPassive, typename TypeVector>
-class StepAxisOrient : public StepActuator<TypeState, TypeRef, TypeStepPassive> {
+template<typename TypeStepPassive>
+class StepAxisOrient : public StepActuator<TypeStepPassive> {
     public:
-        StepAxisOrient(const TypeRef<const TypeVector>& p_direction, const double& p_time) : direction(p_direction), time(p_time) {
+        using Type = StepActuator<TypeStepPassive>;
+        using typename Type::TypeStateVectorDynamic;
+        using TypeSpaceVector = typename TypeStepPassive::TypeSpaceVector;
+    public:
+        StepAxisOrient(const TypeSpaceVector& p_direction, const double& p_time) : direction(p_direction), time(p_time) {
         }
 
-        TypeState operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepPassive& stepPassive) const override {
-            // Control engineering
+        TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const override {
+            // Control theory
             // // init
-            //TypeState dState = TypeState::Zero();
+            //TypeStateVectorDynamic dState(stepPassive->stateSize());
+            //dState.fill(0.0);
             // // compute angular velocity
-            //TypeVector axis = stepPassive.cAxis(state);
+            //TypeVector axis = stepPassive.cAxis(pState);
             //double errorAngle = std::atan2(axis.cross(direction).norm(), axis.dot(direction));
             //TypeVector angularVelocityAxis = axis.cross(direction).normalized();
             //TypeVector angularVelocity = errorAngle / time * angularVelocityAxis;
@@ -63,16 +78,17 @@ class StepAxisOrient : public StepActuator<TypeState, TypeRef, TypeStepPassive> 
             
             // Pedley model
             // // init
-            TypeState dState = TypeState::Zero();
+            TypeStateVectorDynamic dState(stepPassive.stateSize());
+            dState.fill(0.0);
             // // get
-            TypeVector axis = stepPassive.cAxis(state);
+            TypeSpaceVector axis = stepPassive.cAxis(pState);
             // // compute
-            stepPassive.axis(dState) = 1.0/(2.0 * time) * (direction - direction.dot(axis) * axis);
+            stepPassive.axis(dState.data()) = 1.0/(2.0 * time) * (direction - direction.dot(axis) * axis);
             // // return
             return dState;
         }
     public:
-        TypeVector direction;
+        TypeSpaceVector direction;
         double time;
 };
 

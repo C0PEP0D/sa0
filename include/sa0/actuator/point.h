@@ -11,19 +11,24 @@ namespace sa0 {
 
 // Actuators
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepPassive, typename TypeVector>
-class StepPointSwim : public StepActuator<TypeState, TypeRef, TypeStepPassive> {
+template<typename TypeStepPassive>
+class StepPointSwim : public StepActuator<TypeStepPassive> {
     public:
-        StepPointSwim(const TypeRef<const TypeVector>& p_velocity) : velocity(p_velocity) {
+        using Type = StepActuator<TypeStepPassive>;
+        using typename Type::TypeStateVectorDynamic;
+        using TypeSpaceVector = typename TypeStepPassive::TypeSpaceVector;
+    public:
+        StepPointSwim(const TypeSpaceVector& p_velocity) : velocity(p_velocity) {
         }
 
-        TypeState operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepPassive& stepPassive) const override {
-            TypeState dState = TypeState::Zero();
-            stepPassive.x(dState) = velocity;
+        TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const override {
+            TypeStateVectorDynamic dState(stepPassive.stateSize());
+            dState.fill(0.0);
+            stepPassive.x(dState.data()) = velocity;
             return dState;
         }
     public:
-        TypeVector velocity;
+        TypeSpaceVector velocity;
 };
 
 }

@@ -11,11 +11,11 @@ namespace sa0 {
 
 // Active Agents
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepActive>
+template<typename TypeStepActive>
 class Behaviour {
     public:
-        virtual void operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepActive& stepActive) const = 0;
-        virtual std::vector<typename TypeStepActive::TypeSpaceVector> positions(const TypeRef<const TypeState>& state, const TypeStepActive& stepActive) const {
+        virtual void operator()(const double* state, const double& t, const TypeStepActive& stepActive) const = 0;
+        virtual std::vector<typename TypeStepActive::TypeSpaceVector> positions(const double* pState, const TypeStepActive& stepActive) const {
             return {};
         }
 };

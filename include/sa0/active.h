@@ -16,35 +16,37 @@ namespace sa0 {
 
 // Active Agents
 
-template<typename TypeState, template<typename...> class TypeRef, typename TypeStepPassive>
+template<typename TypeStepPassive>
 class StepActuator {
+    public:
+        using TypeStateVectorDynamic = typename TypeStepPassive::TypeStateVectorDynamic;
     public:
         StepActuator() {
         }
-        virtual TypeState operator()(const TypeRef<const TypeState>& state, const double& t, const TypeStepPassive& stepPassive) const = 0;
+        virtual TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const = 0;
 };
 
-template<template<int> typename TypeState, template<typename...> class TypeRef, template<typename...> class TypeView, typename TypeStepPassive, typename TypeStepActuator>
+template<template<typename...> class TypeView, typename TypeStepPassive, typename TypeStepActuator>
 class StepActive : public TypeStepPassive {
     public:
         using TypeStepPassive::StateSize;
-        using typename TypeStepPassive::TypeStateStatic;
+        using typename TypeStepPassive::TypeStateVectorDynamic;
     public:
         StepActive(const TypeStepPassive& stepPassive) : TypeStepPassive(stepPassive) {
         }
     public:
-        TypeStateStatic operator()(const TypeRef<const TypeStateStatic>& state, const double& t) const override {
+        TypeStateVectorDynamic operator()(const double* pState, const double& t) const override {
             //TypeStateStatic dState = std::accumulate(/*std::execution::par_unseq, */sStepActuators.cbegin(), sStepActuators.cend(), (*sStepPassive)(state, t), [this, state, t](TypeStateStatic result, const std::shared_ptr<TypeStepActuator>& sStepActuator){
             //    return std::move(result) + sStepActuator->operator()(state, t, *sStepPassive);
             //}); // WHY THE FUCK IS ACCUMULATE NOT WORKING !?!?
-            TypeStateStatic dState = TypeStepPassive::operator()(state, t);
+            TypeStateVectorDynamic dState = TypeStepPassive::operator()(pState, t);
             for(const auto& sStepActuator : sStepActuators) {
-                dState += (*sStepActuator)(state, t, *this);
+                dState += (*sStepActuator)(pState, t, *this);
             }
             return dState;
         }
-        void update(TypeRef<TypeStateStatic> state, const double& t) override {
-            TypeStepPassive::update(state, t);
+        void update(double* pState, const double& t) override {
+            TypeStepPassive::update(pState, t);
         }
     public:
         // registering
@@ -58,19 +60,20 @@ class StepActive : public TypeStepPassive {
         std::vector<std::shared_ptr<TypeStepActuator>> sStepActuators;
 };
 
-template<template<int> typename TypeState, template<typename...> class TypeRef, template<typename...> class TypeView, typename TypeStepPassive, typename TypeStepActuator, typename TypeSolver>
-class ObjectActive : public ObjectStatic<TypeRef, TypeSolver, StepActive<TypeState, TypeRef, TypeView, TypeStepPassive, TypeStepActuator>> {
+template<template<typename...> class TypeView, typename TypeStepPassive, typename TypeStepActuator, typename TypeSolver>
+class ObjectActive : public ObjectStatic<TypeSolver, StepActive<TypeView, TypeStepPassive, TypeStepActuator>> {
     public:
-        using TypeStep = StepActive<TypeState, TypeRef, TypeView, TypeStepPassive, TypeStepActuator>;
+        using TypeStep = StepActive<TypeView, TypeStepPassive, TypeStepActuator>;
+        using Type = ObjectStatic<TypeSolver, TypeStep>;
     public:
-        ObjectActive(const TypeStepPassive& stepPassive) : ObjectStatic<TypeRef, TypeSolver, TypeStep>(std::make_shared<TypeStep>(stepPassive)) {
+        ObjectActive(const TypeStepPassive& stepPassive) : ObjectStatic<TypeSolver, TypeStep>(std::make_shared<TypeStep>(stepPassive)) {
         }
     public:
         // Inherited
-        using ObjectStatic<TypeRef, TypeSolver, TypeStep>::sSolver;
-        using ObjectStatic<TypeRef, TypeSolver, TypeStep>::sStep;
-        using ObjectStatic<TypeRef, TypeSolver, TypeStep>::state;
-        using ObjectStatic<TypeRef, TypeSolver, TypeStep>::t;
+        using Type::sSolver;
+        using Type::sStep;
+        using Type::state;
+        using Type::t;
 };
 
 }
