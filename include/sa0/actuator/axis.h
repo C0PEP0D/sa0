@@ -42,9 +42,9 @@ class StepAxisRotate : public StepActuator<TypeStepPassive> {
         }
 
         TypeStateVectorDynamic operator()(const double* pState, const double& t, const TypeStepPassive& stepPassive) const override {
-            TypeStateVectorDynamic dState(stepPassive->stateSize());
+            TypeStateVectorDynamic dState(stepPassive.stateSize());
             dState.fill(0.0);
-            stepPassive.axis(dState) = angularVelocity.cross(stepPassive.cAxis(pState));
+            stepPassive.axis(dState.data()) = angularVelocity.cross(stepPassive.cAxis(pState));
             return dState;
         }
     public:
