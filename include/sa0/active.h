@@ -50,11 +50,14 @@ class StepActive : public TypeStepPassive {
         }
     public:
         // registering
-        void register_actuator(std::shared_ptr<TypeStepActuator> sStep) {
+        void registerActuator(std::shared_ptr<TypeStepActuator> sStep) {
             sStepActuators.push_back(sStep);
         }
-        void unregister_actuator(const unsigned int& actuatorIndex) {
-            sStepActuators.push_back(sStepActuators.begin() + actuatorIndex);
+        void unregisterActuator(const unsigned int& actuatorIndex) {
+            sStepActuators.erase(sStepActuators.begin() + actuatorIndex);
+        }
+        void clearActuators() {
+            sStepActuators.clear();
         }
     public:
         std::vector<std::shared_ptr<TypeStepActuator>> sStepActuators;
